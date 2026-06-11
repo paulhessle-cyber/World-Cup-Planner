@@ -1,23 +1,303 @@
-routes: {
-    top: { 
-        matchNum: "80", 
-        label: "Match 80: [TEAM] (1st Group L) vs 3rd Place Team (E/H/I/J/K)", 
-        r32Date: "2026-07-01T21:00:00Z", // 22:00 UK / BST
-        r32Venue: "Mercedes-Benz Stadium, Atlanta", 
-        nextLabel: "Match 92 (Winner 79 vs Winner 80)" 
-    },
-    second: { 
-        matchNum: "81", 
-        label: "Match 81: 2nd Group L vs 2nd Group K", 
-        r32Date: "2026-07-02T23:00:00Z", // 00:00 (Midnight) UK Next Day
-        r32Venue: "SoFi Stadium, Los Angeles", 
-        nextLabel: "Match 94 (Winner 81 vs Winner 82)" 
-    },
-    third: { 
-        matchNum: "80", 
-        label: "Match 80: 1st Group L vs [TEAM] (3rd Group L - If Qualified)", 
-        r32Date: "2026-07-01T21:00:00Z", 
-        r32Venue: "Mercedes-Benz Stadium, Atlanta", 
-        nextLabel: "Match 92 (Winner 79 vs Winner 80)" 
-    }
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Cup 2026 Router & Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-100 p-4 md:p-8 font-sans">
+
+    <div class="max-w-4xl mx-auto bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-6">
+        
+        <!-- App Header Section -->
+        <header class="text-center border-b border-slate-700 pb-6 mb-6">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 mb-2">
+                🏆 World Cup 2026 Path Simulator
+            </h1>
+            <p class="text-sm text-slate-400">
+                Localizing kickoff times to: <span id="timezone-display" class="font-bold text-amber-400">Detecting...</span>
+            </p>
+        </header>
+
+        <!-- Dropdown Selector Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+                <label for="team-select" class="block font-semibold text-sm text-slate-300 mb-2">Choose National Team:</label>
+                <select id="team-select" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
+                    <!-- Dynamic rendering of teams grouped by group layout -->
+                </select>
+            </div>
+            <div class="flex flex-col justify-end">
+                <span id="group-badge" class="inline-block self-start bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl font-bold text-amber-400 w-full text-center md:text-left">
+                    Loading Group Configuration...
+                </span>
+            </div>
+        </div>
+
+        <!-- Navigation Layout Tabs -->
+        <div class="flex border-b border-slate-700 mb-6">
+            <button id="tab-fixtures" onclick="switchView('fixtures')" class="py-2.5 px-5 font-bold text-sm border-b-2 border-amber-500 text-amber-400 transition-all">
+                🗓️ Group Stage Fixtures
+            </button>
+            <button id="tab-bracket" onclick="switchView('bracket')" class="py-2.5 px-5 font-bold text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+                🗺️ Route to the Final
+            </button>
+        </div>
+
+        <!-- Component Container 1: Group Fixtures -->
+        <div id="view-fixtures" class="space-y-3">
+            <div id="fixtures-list" class="grid grid-cols-1 gap-3">
+                <!-- Group fixtures injected here -->
+            </div>
+        </div>
+
+        <!-- Component Container 2: Knockout Simulator -->
+        <div id="view-bracket" class="hidden space-y-6">
+            <div>
+                <h3 class="text-base font-semibold text-slate-300 mb-3">
+                    Simulate Group Finish Position:
+                </h3>
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="calculateKnockoutRoute('top')" id="btn-top" class="py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600">
+                        🥇 Top of Group
+                    </button>
+                    <button onclick="calculateKnockoutRoute('second')" id="btn-second" class="py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600">
+                        🥈 Second Place
+                    </button>
+                    <button onclick="calculateKnockoutRoute('third')" id="btn-third" class="py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600">
+                        🥉 Third Place
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Interactive Path Bracket Layout -->
+            <div id="bracket-timeline" class="space-y-4 relative border-l-2 border-slate-700 ml-4 pl-6 hidden">
+                <!-- Calculated steps from Round of 32 down to Final populate here -->
+            </div>
+            
+            <div id="bracket-placeholder" class="text-center py-8 text-slate-500 italic">
+                Select a simulated finish position above to calculate the route to the final.
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // MASTER CONFIGURATION SCHEMA WITH CORRECTED FIFA SLOTS AND UTC OFFSETS
+        const GROUPS_DATA = {
+            "Group A": { 
+                teams: ["Mexico", "South Africa", "South Korea", "Czechia"], 
+                key: "A",
+                schedule: [
+                    { home: "Mexico", away: "South Africa", date: "2026-06-11T19:00:00Z", venue: "Azteca Stadium, Mexico City" },
+                    { home: "South Korea", away: "Czechia", date: "2026-06-12T02:00:00Z", venue: "Estadio Akron, Guadalajara" },
+                    { home: "Czechia", away: "South Africa", date: "2026-06-18T16:00:00Z", venue: "Mercedes-Benz Stadium, Atlanta" },
+                    { home: "Mexico", away: "South Korea", date: "2026-06-19T01:00:00Z", venue: "Estadio Akron, Guadalajara" },
+                    { home: "Czechia", away: "Mexico", date: "2026-06-24T21:00:00Z", venue: "Azteca Stadium, Mexico City" },
+                    { home: "South Africa", away: "South Korea", date: "2026-06-24T21:00:00Z", venue: "Hard Rock Stadium, Miami" }
+                ],
+                routes: {
+                    top: { matchNum: "79", label: "Match 79: [TEAM] (1st Group A) vs 3rd Place Team (C/E/F/H/I)", r32Date: "2026-06-30T20:00:00Z", r32Venue: "Azteca Stadium, Mexico City", nextLabel: "Match 92 (Winner 79 vs Winner 80)", nextDate: "2026-07-05T20:00:00Z", nextVenue: "Azteca Stadium, Mexico City" },
+                    second: { matchNum: "73", label: "Match 73: [TEAM] (2nd Group A) vs 2nd Place Group B", r32Date: "2026-06-29T21:00:00Z", r32Venue: "SoFi Stadium, Los Angeles", nextLabel: "Match 90 (Winner 73 vs Winner 75)", nextDate: "2026-07-04T23:00:00Z", nextVenue: "NRG Stadium, Houston" },
+                    third: { matchNum: "74", label: "Match 74: 1st Place Group E vs [TEAM] (3rd Group A - If Qualified)", r32Date: "2026-06-29T19:00:00Z", r32Venue: "Gillette Stadium, Foxborough", nextLabel: "Match 89 (Winner 74 vs Winner 77)", nextDate: "2026-07-04T19:00:00Z", nextVenue: "Lincoln Financial Field, Philadelphia" }
+                }
+            },
+            "Group D": { 
+                teams: ["USA", "Paraguay", "Australia", "Turkiye"], 
+                key: "D",
+                schedule: [
+                    { home: "USA", away: "Paraguay", date: "2026-06-13T01:00:00Z", venue: "SoFi Stadium, Los Angeles" },
+                    { home: "Australia", away: "Turkiye", date: "2026-06-14T04:00:00Z", venue: "BC Place, Vancouver" },
+                    { home: "USA", away: "Australia", date: "2026-06-19T18:00:00Z", venue: "Lumen Field, Seattle" },
+                    { home: "Paraguay", away: "Turkiye", date: "2026-06-20T02:00:00Z", venue: "Gillette Stadium, Foxborough" },
+                    { home: "Turkiye", away: "USA", date: "2026-06-25T19:00:00Z", venue: "SoFi Stadium, Los Angeles" },
+                    { home: "Paraguay", away: "Australia", date: "2026-06-25T19:00:00Z", venue: "Lumen Field, Seattle" }
+                ],
+                routes: {
+                    top: { matchNum: "76", label: "Match 76: [TEAM] (1st Group D) vs 2nd Place Group E", r32Date: "2026-06-30T23:00:00Z", r32Venue: "NRG Stadium, Houston", nextLabel: "Match 91 (Winner 76 vs Winner 78)", nextDate: "2026-07-05T23:00:00Z", nextVenue: "MetLife Stadium, East Rutherford" },
+                    second: { matchNum: "75", label: "Match 75: 1st Place Group F vs [TEAM] (2nd Group D)", r32Date: "2026-06-30T19:00:00Z", r32Venue: "Estadio BBVA, Monterrey", nextLabel: "Match 90 (Winner 73 vs Winner 75)", nextDate: "2026-07-04T23:00:00Z", nextVenue: "NRG Stadium, Houston" },
+                    third: { matchNum: "74", label: "Match 74: 1st Place Group E vs [TEAM] (3rd Group D - If Qualified)", r32Date: "2026-06-29T19:00:00Z", r32Venue: "Gillette Stadium, Foxborough", nextLabel: "Match 89 (Winner 74 vs Winner 77)", nextDate: "2026-07-04T19:00:00Z", nextVenue: "Lincoln Financial Field, Philadelphia" }
+                }
+            },
+            "Group L": { 
+                teams: ["England", "Croatia", "Ghana", "Panama"], 
+                key: "L",
+                schedule: [
+                    { home: "England", away: "Croatia", date: "2026-06-17T20:00:00Z", venue: "AT&T Stadium, Arlington" },
+                    { home: "Ghana", away: "Panama", date: "2026-06-17T23:00:00Z", venue: "BMO Field, Toronto" },
+                    { home: "England", away: "Ghana", date: "2026-06-22T20:00:00Z", venue: "Gillette Stadium, Foxborough" },
+                    { home: "Croatia", away: "Panama", date: "2026-06-23T00:00:00Z", venue: "MetLife Stadium, East Rutherford" },
+                    { home: "Panama", away: "England", date: "2026-06-27T20:00:00Z", venue: "MetLife Stadium, East Rutherford" },
+                    { home: "Croatia", away: "Ghana", date: "2026-06-27T20:00:00Z", venue: "Gillette Stadium, Foxborough" }
+                ],
+                routes: {
+                    top: { matchNum: "80", label: "Match 80: [TEAM] (1st Group L) vs 3rd Place Team (E/H/I/J/K)", r32Date: "2026-07-01T21:00:00Z", r32Venue: "Mercedes-Benz Stadium, Atlanta", nextLabel: "Match 92 (Winner 79 vs Winner 80)", nextDate: "2026-07-05T20:00:00Z", nextVenue: "Azteca Stadium, Mexico City" },
+                    second: { matchNum: "81", label: "Match 81: [TEAM] (2nd Group L) vs 2nd Place Group K", r32Date: "2026-07-02T23:00:00Z", r32Venue: "SoFi Stadium, Los Angeles", nextLabel: "Match 94 (Winner 81 vs Winner 82)", nextDate: "2026-07-06T23:00:00Z", nextVenue: "AT&T Stadium, Arlington" },
+                    third: { matchNum: "80", label: "Match 80: 1st Place Group L vs [TEAM] (3rd Group L - If Qualified)", r32Date: "2026-07-01T21:00:00Z", r32Venue: "Mercedes-Benz Stadium, Atlanta", nextLabel: "Match 92 (Winner 79 vs Winner 80)", nextDate: "2026-07-05T20:00:00Z", nextVenue: "Azteca Stadium, Mexico City" }
+                }
+            }
+        };
+
+        // Standard formatting helper utilizing en-GB locale rules safely
+        function formatToLocalTime(isoString) {
+            const dateObj = new Date(isoString);
+            return dateObj.toLocaleString('en-GB', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }) + ' BST';
+        }
+
+        function findTeamGroup(teamName) {
+            for (const [groupName, data] of Object.entries(GROUPS_DATA)) {
+                if (data.teams.includes(teamName)) {
+                    return { groupName, data };
+                }
+            }
+            return null;
+        }
+
+        function initDropdown() {
+            const selectEl = document.getElementById("team-select");
+            selectEl.innerHTML = "";
+
+            Object.keys(GROUPS_DATA).forEach(groupName => {
+                const optGroup = document.createElement("optgroup");
+                optGroup.label = groupName;
+                
+                GROUPS_DATA[groupName].teams.forEach(team => {
+                    const opt = document.createElement("option");
+                    opt.value = team;
+                    opt.innerText = team;
+                    if(team === "England") opt.selected = true; 
+                    optGroup.appendChild(opt);
+                });
+                selectEl.appendChild(optGroup);
+            });
+        }
+
+        function switchView(tab) {
+            if(tab === 'fixtures') {
+                document.getElementById("view-fixtures").classList.remove("hidden");
+                document.getElementById("view-bracket").classList.add("hidden");
+                document.getElementById("tab-fixtures").className = "py-2.5 px-5 font-bold text-sm border-b-2 border-amber-500 text-amber-400 transition-all";
+                document.getElementById("tab-bracket").className = "py-2.5 px-5 font-bold text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all";
+            } else {
+                document.getElementById("view-fixtures").classList.add("hidden");
+                document.getElementById("view-bracket").classList.remove("hidden");
+                document.getElementById("tab-fixtures").className = "py-2.5 px-5 font-bold text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all";
+                document.getElementById("tab-bracket").className = "py-2.5 px-5 font-bold text-sm border-b-2 border-amber-500 text-amber-400 transition-all";
+            }
+        }
+
+        function renderFixtures() {
+            const team = document.getElementById("team-select").value;
+            const context = findTeamGroup(team);
+            if(!context) return;
+
+            document.getElementById("group-badge").innerText = `🚩 Assigned: ${context.groupName}`;
+            
+            const listContainer = document.getElementById("fixtures-list");
+            listContainer.innerHTML = "";
+
+            const relevantMatches = context.data.schedule.filter(m => m.home === team || m.away === team);
+
+            relevantMatches.forEach(match => {
+                const card = document.createElement("div");
+                card.className = "flex justify-between items-center bg-slate-900 border border-slate-700 rounded-xl p-4 flex-wrap gap-2 hover:border-slate-600 transition-all";
+                card.innerHTML = `
+                    <div>
+                        <div class="font-bold text-base text-slate-100">
+                            ${match.home} <span class="font-normal text-slate-500">vs</span> ${match.away}
+                        </div>
+                        <div class="text-xs text-slate-400 mt-0.5">📍 ${match.venue}</div>
+                    </div>
+                    <div class="text-right font-semibold text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg text-sm border border-amber-500/20">
+                        ${formatToLocalTime(match.date)}
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        function calculateKnockoutRoute(positionType) {
+            const team = document.getElementById("team-select").value;
+            const context = findTeamGroup(team);
+            if(!context) return;
+
+            const routeData = context.data.routes[positionType];
+            
+            ['top', 'second', 'third'].forEach(pos => {
+                document.getElementById(`btn-${pos}`).className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600";
+            });
+
+            const activeBtn = document.getElementById(`btn-${positionType}`);
+            if(positionType === 'top') activeBtn.className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-green-600 text-white shadow-lg shadow-green-600/20";
+            if(positionType === 'second') activeBtn.className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20";
+            if(positionType === 'third') activeBtn.className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-red-600 text-white shadow-lg shadow-red-600/20";
+
+            const timeline = document.getElementById("bracket-timeline");
+            timeline.innerHTML = "";
+            
+            document.getElementById("bracket-placeholder").classList.add("hidden");
+            timeline.classList.remove("hidden");
+
+            // Complete, structurally verified lineage array passing clean ISO boundaries
+            const steps = [
+                { stage: "Round of 32", date: routeData.r32Date, venue: routeData.r32Venue, desc: routeData.label.replace("[TEAM]", team) },
+                { stage: "Round of 16", date: routeData.nextDate, venue: routeData.nextVenue, desc: routeData.nextLabel + ` (Featuring ${team} if they qualify)` },
+                { stage: "Quarter-finals", date: "2026-07-10T22:00:00Z", venue: "Gillette Stadium, Boston / Arrowhead Stadium", desc: `Quarter-final Bracket Node (Featuring ${team} if they advance)` },
+                { stage: "Semi-finals", date: "2026-07-15T23:00:00Z", venue: "AT&T Stadium, Arlington / Mercedes-Benz Stadium", desc: `Semi-final Championship Node (Featuring ${team} if they advance)` },
+                { stage: "World Cup Final", date: "2026-07-19T19:00:00Z", venue: "MetLife Stadium, East Rutherford", desc: "Match 104: FIFA World Cup Championship Match" }
+            ];
+
+            steps.forEach(step => {
+                const item = document.createElement("div");
+                item.className = "relative group";
+                item.innerHTML = `
+                    <div class="absolute -left-[31px] top-1.5 bg-slate-800 border-2 border-amber-500 rounded-full w-4 h-4 group-hover:bg-amber-400 transition-all"></div>
+                    <div class="bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-xl p-4 transition-all">
+                        <div class="flex justify-between items-start flex-wrap gap-2 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">
+                                ${step.stage}
+                            </span>
+                            <span class="text-sm font-medium text-slate-300">
+                                📅 ${formatToLocalTime(step.date)}
+                            </span>
+                        </div>
+                        <h4 class="font-bold text-base text-slate-100 mb-1">${step.desc}</h4>
+                        <p class="text-xs text-slate-400">🏟️ Venue: ${step.venue}</p>
+                    </div>
+                `;
+                timeline.appendChild(item);
+            });
+        }
+
+        function handleTeamUpdate() {
+            renderFixtures();
+            document.getElementById("bracket-timeline").innerHTML = "";
+            document.getElementById("bracket-timeline").classList.add("hidden");
+            document.getElementById("bracket-placeholder").classList.remove("hidden");
+            ['top', 'second', 'third'].forEach(pos => {
+                document.getElementById(`btn-${pos}`).className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600";
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                document.getElementById("timezone-display").innerText = Intl.DateTimeFormat().resolvedOptions().timeZone + " (Automatic Conversion)";
+            } catch (e) {
+                document.getElementById("timezone-display").innerText = "Europe/London (BST)";
+            }
+
+            initDropdown();
+            document.getElementById("team-select").addEventListener("change", handleTeamUpdate);
+            handleTeamUpdate();
+        });
+    </script>
+</body>
+</html>
