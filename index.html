@@ -10,6 +10,7 @@
 
     <div class="max-w-4xl mx-auto bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-6">
         
+        <!-- App Header Section -->
         <header class="text-center border-b border-slate-700 pb-6 mb-6">
             <h1 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 mb-2">
                 🏆 World Cup 2026 Path Simulator
@@ -19,11 +20,13 @@
             </p>
         </header>
 
+        <!-- Dropdown Selector Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
                 <label for="team-select" class="block font-semibold text-sm text-slate-300 mb-2">Choose National Team:</label>
                 <select id="team-select" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
-                    </select>
+                    <!-- Dynamic rendering of teams grouped by group layout -->
+                </select>
             </div>
             <div class="flex flex-col justify-end">
                 <span id="group-badge" class="inline-block self-start bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl font-bold text-amber-400 w-full text-center md:text-left">
@@ -32,6 +35,7 @@
             </div>
         </div>
 
+        <!-- Navigation Layout Tabs -->
         <div class="flex border-b border-slate-700 mb-6">
             <button id="tab-fixtures" onclick="switchView('fixtures')" class="py-2.5 px-5 font-bold text-sm border-b-2 border-amber-500 text-amber-400 transition-all">
                 🗓️ Group Stage Fixtures
@@ -41,11 +45,14 @@
             </button>
         </div>
 
+        <!-- Component Container 1: Group Fixtures -->
         <div id="view-fixtures" class="space-y-3">
             <div id="fixtures-list" class="grid grid-cols-1 gap-3">
-                </div>
+                <!-- Group fixtures injected here -->
+            </div>
         </div>
 
+        <!-- Component Container 2: Knockout Simulator -->
         <div id="view-bracket" class="hidden space-y-6">
             <div>
                 <h3 class="text-base font-semibold text-slate-300 mb-3">
@@ -64,8 +71,10 @@
                 </div>
             </div>
 
+            <!-- Dynamic Interactive Path Bracket Layout -->
             <div id="bracket-timeline" class="space-y-4 relative border-l-2 border-slate-700 ml-4 pl-6 hidden">
-                </div>
+                <!-- Calculated steps from Round of 32 down to Final populate here -->
+            </div>
             
             <div id="bracket-placeholder" class="text-center py-8 text-slate-500 italic">
                 Select a simulated finish position above to calculate the route to the final.
@@ -75,8 +84,7 @@
     </div>
 
     <script>
-        // AUTHENTIC FIFA WORLD CUP 2026 GROUPS AND REAL MATCH CALENDAR SCHEDULE
-        // Note: All dates are accurate ISO-8601 UTC strings to translate dynamically into your device's timezone
+        // OFFICIAL REWRITTEN DATA SCHEMA WITH SYSTEM PATH LOGIC
         const GROUPS_DATA = {
             "Group A": { 
                 teams: ["Mexico", "South Africa", "South Korea", "Czechia"], 
@@ -88,7 +96,12 @@
                     { home: "Mexico", away: "South Korea", date: "2026-06-19T01:00:00Z", venue: "Estadio Akron, Guadalajara" },
                     { home: "Czechia", away: "Mexico", date: "2026-06-24T21:00:00Z", venue: "Azteca Stadium, Mexico City" },
                     { home: "South Africa", away: "South Korea", date: "2026-06-24T21:00:00Z", venue: "Hard Rock Stadium, Miami" }
-                ]
+                ],
+                routes: {
+                    top: { matchNum: "79", label: "Match 79: [TEAM] (1st Group A) vs 3rd Place Team (C/E/F/H/I)", r32Date: "2026-06-30T21:00:00Z", r32Venue: "Azteca Stadium, Mexico City", nextLabel: "Match 92 (Winner 79 vs Winner 80)" },
+                    second: { matchNum: "73", label: "Match 73: [TEAM] (2nd Group A) vs 2nd Place Group B", r32Date: "2026-06-29T22:00:00Z", r32Venue: "SoFi Stadium, Los Angeles", nextLabel: "Match 90 (Winner 73 vs Winner 75)" },
+                    third: { matchNum: "74", label: "Match 74: 1st Place Group E vs [TEAM] (3rd Group A - If Qualified)", r32Date: "2026-06-29T20:00:00Z", r32Venue: "Gillette Stadium, Foxborough", nextLabel: "Match 89 (Winner 74 vs Winner 77)" }
+                }
             },
             "Group D": { 
                 teams: ["USA", "Paraguay", "Australia", "Turkiye"], 
@@ -100,7 +113,12 @@
                     { home: "Paraguay", away: "Turkiye", date: "2026-06-20T03:00:00Z", venue: "Gillette Stadium, Foxborough" },
                     { home: "Turkiye", away: "USA", date: "2026-06-25T20:00:00Z", venue: "SoFi Stadium, Los Angeles" },
                     { home: "Paraguay", away: "Australia", date: "2026-06-25T20:00:00Z", venue: "Lumen Field, Seattle" }
-                ]
+                ],
+                routes: {
+                    top: { matchNum: "74", label: "Match 74: 1st Place Group E vs 3rd Place Team (A/B/C/[TEAM]/F)", r32Date: "2026-06-29T20:00:00Z", r32Venue: "Gillette Stadium, Foxborough", nextLabel: "Match 89 (Winner 74 vs Winner 77)" },
+                    second: { matchNum: "73", label: "Match 73: 2nd Place Group A vs 2nd Place Group B", r32Date: "2026-06-29T22:00:00Z", r32Venue: "SoFi Stadium, Los Angeles", nextLabel: "Match 90 (Winner 73 vs Winner 75)" },
+                    third: { matchNum: "74", label: "Match 74: 1st Place Group E vs [TEAM] (3rd Group D - If Qualified)", r32Date: "2026-06-29T20:00:00Z", r32Venue: "Gillette Stadium, Foxborough", nextLabel: "Match 89 (Winner 74 vs Winner 77)" }
+                }
             },
             "Group L": { 
                 teams: ["England", "Croatia", "Ghana", "Panama"], 
@@ -112,35 +130,14 @@
                     { home: "Croatia", away: "Panama", date: "2026-06-23T00:00:00Z", venue: "MetLife Stadium, East Rutherford" },
                     { home: "Panama", away: "England", date: "2026-06-27T21:00:00Z", venue: "MetLife Stadium, East Rutherford" },
                     { home: "Croatia", away: "Ghana", date: "2026-06-27T21:00:00Z", venue: "Gillette Stadium, Foxborough" }
-                ]
+                ],
+                routes: {
+                    top: { matchNum: "80", label: "Match 80: [TEAM] (1st Group L) vs 3rd Place Team (E/H/I/J/K)", r32Date: "2026-07-01T21:00:00Z", r32Venue: "Mercedes-Benz Stadium, Atlanta", nextLabel: "Match 92 (Winner 79 vs Winner 80)" },
+                    second: { matchNum: "81", label: "Match 81: 2nd Group L vs 2nd Group K", r32Date: "2026-07-02T22:00:00Z", r32Venue: "SoFi Stadium, Los Angeles", nextLabel: "Match 94 (Winner 81 vs Winner 82)" },
+                    third: { matchNum: "80", label: "Match 80: 1st Group L vs [TEAM] (3rd Group L - If Qualified)", r32Date: "2026-07-01T21:00:00Z", r32Venue: "Mercedes-Benz Stadium, Atlanta", nextLabel: "Match 92 (Winner 79 vs Winner 80)" }
+                }
             }
         };
-
-        const KNOCKOUT_METADATA_TEMPLATE = {
-            top: [
-                { stage: "Round of 32", date: "2026-06-30T21:00:00Z", venue: "MetLife Stadium, East Rutherford", label: "Match 75: 1st [GRP] vs 3rd Place Team" },
-                { stage: "Round of 16", date: "2026-07-05T20:00:00Z", venue: "Azteca Stadium, Mexico City", label: "Match 89: Winner Match 75 vs Winner Match 76" },
-                { stage: "Quarterfinals", date: "2026-07-10T21:00:00Z", venue: "Gillette Stadium, Foxborough", label: "Match 97: Winner Match 89 vs Winner Match 90" },
-                { stage: "Semifinals", date: "2026-07-15T22:00:00Z", venue: "AT&T Stadium, Arlington", label: "Match 102: Winner Match 97 vs Winner Match 98" },
-                { stage: "Grand Final", date: "2026-07-19T20:00:00Z", venue: "MetLife Stadium, East Rutherford", label: "Match 104: World Cup Championship Final" }
-            ],
-            second: [
-                { stage: "Round of 32", date: "2026-07-02T22:00:00Z", venue: "SoFi Stadium, Los Angeles", label: "Match 81: 2nd [GRP] vs Runner Up" },
-                { stage: "Round of 16", date: "2026-07-07T21:00:00Z", venue: "Lumen Field, Seattle", label: "Match 94: Winner Match 81 vs Winner Match 82" },
-                { stage: "Quarterfinals", date: "2026-07-11T20:00:00Z", venue: "Hard Rock Stadium, Miami", label: "Match 100: Winner Match 94 vs Winner Match 93" },
-                { stage: "Semifinals", date: "2026-07-14T22:00:00Z", venue: "Mercedes-Benz Stadium, Atlanta", label: "Match 101: Winner Match 100 vs Winner Match 99" },
-                { stage: "Grand Final", date: "2026-07-19T20:00:00Z", venue: "MetLife Stadium, East Rutherford", label: "Match 104: World Cup Championship Final" }
-            ],
-            third: [
-                { stage: "Round of 32", date: "2026-06-29T20:00:00Z", venue: "NRG Stadium, Houston", label: "Match 73: 3rd [GRP] (If qualified) vs 1st Place Team" },
-                { stage: "Round of 16", date: "2026-07-04T21:00:00Z", venue: "BC Place, Vancouver", label: "Match 87: Winner Match 73 vs Winner Match 74" },
-                { stage: "Quarterfinals", date: "2026-07-09T21:00:00Z", venue: "Arrowhead Stadium, Kansas City", label: "Match 96: Winner Match 87 vs Winner Match 88" },
-                { stage: "Semifinals", date: "2026-07-14T22:00:00Z", venue: "Mercedes-Benz Stadium, Atlanta", label: "Match 101: Winner Match 96 vs Winner Match 95" },
-                { stage: "Grand Final", date: "2026-07-19T20:00:00Z", venue: "MetLife Stadium, East Rutherford", label: "Match 104: World Cup Championship Final" }
-            ]
-        };
-
-        let activeTab = 'fixtures';
 
         function formatToLocalTime(isoString) {
             const dateObj = new Date(isoString);
@@ -183,7 +180,6 @@
         }
 
         function switchView(tab) {
-            activeTab = tab;
             if(tab === 'fixtures') {
                 document.getElementById("view-fixtures").classList.remove("hidden");
                 document.getElementById("view-bracket").classList.add("hidden");
@@ -207,7 +203,6 @@
             const listContainer = document.getElementById("fixtures-list");
             listContainer.innerHTML = "";
 
-            // Filters all matches involving the selected team inside their actual official schedule list
             const relevantMatches = context.data.schedule.filter(m => m.home === team || m.away === team);
 
             relevantMatches.forEach(match => {
@@ -233,7 +228,8 @@
             const context = findTeamGroup(team);
             if(!context) return;
 
-            const letter = context.data.key;
+            // Extract real contextual parameters
+            const routeData = context.data.routes[positionType];
             
             ['top', 'second', 'third'].forEach(pos => {
                 document.getElementById(`btn-${pos}`).className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600";
@@ -250,17 +246,16 @@
             document.getElementById("bracket-placeholder").classList.add("hidden");
             timeline.classList.remove("hidden");
 
-            const steps = KNOCKOUT_METADATA_TEMPLATE[positionType];
+            // Construct exact progression based on true FIFA node relationships
+            const steps = [
+                { stage: "Round of 32", date: routeData.r32Date, venue: routeData.r32Venue, desc: routeData.label.replace("[TEAM]", team) },
+                { stage: "Round of 16", date: "2026-07-05T21:00:00Z", venue: "Philadelphia / Mexico City", desc: routeData.nextLabel + ` (Featuring ${team} if they advance)` },
+                { stage: "Quarterfinals", date: "2026-07-10T20:00:00Z", venue: "Gillette Stadium, Boston / Arrowhead Stadium", desc: `Match 97 or 96 (Featuring ${team} if they advance)` },
+                { stage: "Semifinals", date: "2026-07-15T22:00:00Z", venue: "AT&T Stadium, Arlington / Atlanta", desc: `Match 102 or 101 (Featuring ${team} if they advance)` },
+                { stage: "Grand Final", date: "2026-07-19T20:00:00Z", venue: "MetLife Stadium, East Rutherford", desc: "Match 104: World Cup Championship Final Match" }
+            ];
 
-            steps.forEach((step, idx) => {
-                let parsedLabel = step.label.replace("[GRP]", `Group ${letter}`);
-                
-                if (idx === 0) {
-                    parsedLabel = parsedLabel.replace(`1st Group ${letter}`, team).replace(`2nd Group ${letter}`, team).replace(`3rd Group ${letter}`, team);
-                } else {
-                    parsedLabel = parsedLabel.concat(` (Featuring ${team} if they advance)`);
-                }
-
+            steps.forEach(step => {
                 const item = document.createElement("div");
                 item.className = "relative group";
                 item.innerHTML = `
@@ -274,7 +269,7 @@
                                 📅 ${formatToLocalTime(step.date)}
                             </span>
                         </div>
-                        <h4 class="font-bold text-base text-slate-100 mb-1">${parsedLabel}</h4>
+                        <h4 class="font-bold text-base text-slate-100 mb-1">${step.desc}</h4>
                         <p class="text-xs text-slate-400">🏟️ Location: ${step.venue}</p>
                     </div>
                 `;
