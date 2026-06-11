@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Cup 2026 Router & Tracker</title>
+    <!-- Tailwind CSS for sleek layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 min-h-screen text-slate-100 p-4 md:p-8 font-sans">
+
+    <div class="max-w-4xl mx-auto bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-6">
+        
+        <!-- App Header Section -->
+        <header class="text-center border-b border-slate-700 pb-6 mb-6">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 mb-2">
+                🏆 World Cup 2026 Path Simulator
+            </h1>
+            <p class="text-sm text-slate-400">
+                Localizing kickoff times to: <span id="timezone-display" class="font-bold text-amber-400">Detecting...</span>
+            </p>
+        </header>
+
+        <!-- Dropdown Selector Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+                <label for="team-select" class="block font-semibold text-sm text-slate-300 mb-2">Choose National Team:</label>
+                <select id="team-select" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
+                    <!-- Dynamic rendering of all 48 teams grouped by their authentic group layout -->
+                </select>
+            </div>
+            <div class="flex flex-col justify-end">
+                <span id="group-badge" class="inline-block self-start bg-slate-900 border border-slate-700 px-4 py-3 rounded-xl font-bold text-amber-400 w-full text-center md:text-left">
+                    Loading Group Configuration...
+                </span>
+            </div>
+        </div>
+
+        <!-- Section Navigation Layout Tabs -->
+        <div class="flex border-b border-slate-700 mb-6">
+            <button id="tab-fixtures" onclick="switchView('fixtures')" class="py-2.5 px-5 font-bold text-sm border-b-2 border-amber-500 text-amber-400 transition-all">
+                🗓️ Group Stage Fixtures
+            </button>
+            <button id="tab-bracket" onclick="switchView('bracket')" class="py-2.5 px-5 font-bold text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+                🗺️ Route to the Final
+            </button>
+        </div>
+
+        <!-- Component Container 1: Group Fixtures -->
+        <div id="view-fixtures" class="space-y-3">
+            <div id="fixtures-list" class="grid grid-cols-1 gap-3">
+                <!-- Group fixtures injected here -->
+            </div>
+        </div>
+
+        <!-- Component Container 2: Knockout Simulator Bracket Pathway -->
+        <div id="view-bracket" class="hidden space-y-6">
+            <div>
+                <h3 class="text-base font-semibold text-slate-300 mb-3">
+                    Simulate Group Finish Position:
+                </h3>
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="calculateKnockoutRoute('top')" id="btn-top" class="py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600">
+                        🥇 Top of Group
+                    </button>
+                    <button onclick="calculateKnockoutRoute('second')" id="btn-second" class="py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600">
+                        🥈 Second Place
+                    </button>
+                    <button onclick="calculateKnockoutRoute('third')" id="btn-third" class="py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600">
+                        🥉 Third Place
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Interactive Path Bracket Layout -->
+            <div id="bracket-timeline" class="space-y-4 relative border-l-2 border-slate-700 ml-4 pl-6 hidden">
+                <!-- Calculated steps from Round of 32 down to Final populate here -->
+            </div>
+            
+            <div id="bracket-placeholder" class="text-center py-8 text-slate-500 italic">
+                Select a simulated finish position above to calculate the route to the final.
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Data Schema tracking authentic World Cup groups and historical seeding keys
+        const GROUPS_DATA = {
+            "Group A": { teams: ["Mexico", "South Africa", "South Korea", "Czechia"], key: "A" },
+            "Group B": { teams: ["Canada", "Bosnia", "Playoff A", "Playoff B"], key: "B" },
+            "Group C": { teams: ["Spain", "Saudi Arabia", "Uruguay", "Cape Verde"], key: "C" },
+            "Group D": { teams: ["USA", "Paraguay", "Australia", "Turkiye"], key: "D" },
+            "Group E": { teams: ["Brazil", "Morocco", "Haiti", "Scotland"], key: "E" },
+            "Group F": { teams: ["Germany", "Curaçao", "Netherlands", "Japan"], key: "F" },
+            "Group G": { teams: ["France", "Senegal", "Iraq", "Norway"], key: "G" },
+            "Group H": { teams: ["Argentina", "Algeria", "Austria", "Jordan"], key: "H" },
+            "Group I": { teams: ["Portugal", "New Zealand", "Uzbekistan", "Colombia"], key: "I" },
+            "Group J": { teams: ["Belgium", "Iran", "Tunisia", "Playoff C"], key: "J" },
+            "Group K": { teams: ["Italy", "Cameroon", "Chile", "Poland"], key: "K" },
+            "Group L": { teams: ["England", "Croatia", "Ghana", "Panama"], key: "L" }
+        };
+
+        // Standardized templates detailing static placeholder match constraints across structural intervals
+        const KNOCKOUT_METADATA_TEMPLATE = {
+            top: [
+                { stage: "Round of 32", date: "2026-06-30T21:00:00Z", venue: "MetLife Stadium, East Rutherford", label: "Match 75: 1st [GRP] vs 3rd Place Team" },
+                { stage: "Round of 16", date: "2026-07-05T20:00:00Z", venue: "Azteca Stadium, Mexico City", label: "Match 89: Winner Match 75 vs Winner Match 76" },
+                { stage: "Quarterfinals", date: "2026-07-10T21:00:00Z", venue: "Gillette Stadium, Foxborough", label: "Match 97: Winner Match 89 vs Winner Match 90" },
+                { stage: "Semifinals", date: "2026-07-15T22:00:00Z", venue: "AT&T Stadium, Arlington", label: "Match 102: Winner Match 97 vs Winner Match 98" },
+                { stage: "Grand Final", date: "2026-07-19T20:00:00Z", venue: "MetLife Stadium, East Rutherford", label: "Match 104: World Cup Championship Final" }
+            ],
+            second: [
+                { stage: "Round of 32", date: "2026-07-02T22:00:00Z", venue: "SoFi Stadium, Los Angeles", label: "Match 81: 2nd [GRP] vs Runner Up" },
+                { stage: "Round of 16", date: "2026-07-07T21:00:00Z", venue: "Lumen Field, Seattle", label: "Match 94: Winner Match 81 vs Winner Match 82" },
+                { stage: "Quarterfinals", date: "2026-07-11T20:00:00Z", venue: "Hard Rock Stadium, Miami", label: "Match 100: Winner Match 94 vs Winner Match 93" },
+                { stage: "Semifinals", date: "2026-07-14T22:00:00Z", venue: "Mercedes-Benz Stadium, Atlanta", label: "Match 101: Winner Match 100 vs Winner Match 99" },
+                { stage: "Grand Final", date: "2026-07-19T20:00:00Z", venue: "MetLife Stadium, East Rutherford", label: "Match 104: World Cup Championship Final" }
+            ],
+            third: [
+                { stage: "Round of 32", date: "2026-06-29T20:00:00Z", venue: "NRG Stadium, Houston", label: "Match 73: 3rd [GRP] (If qualified) vs 1st Place Team" },
+                { stage: "Round of 16", date: "2026-07-04T21:00:00Z", venue: "BC Place, Vancouver", label: "Match 87: Winner Match 73 vs Winner Match 74" },
+                { stage: "Quarterfinals", date: "2026-07-09T21:00:00Z", venue: "Arrowhead Stadium, Kansas City", label: "Match 96: Winner Match 87 vs Winner Match 88" },
+                { stage: "Semifinals", date: "2026-07-14T22:00:00Z", venue: "Mercedes-Benz Stadium, Atlanta", label: "Match 101: Winner Match 96 vs Winner Match 95" },
+                { stage: "Grand Final", date: "2026-07-19T20:00:00Z", venue: "MetLife Stadium, East Rutherford", label: "Match 104: World Cup Championship Final" }
+            ]
+        };
+
+        let activeTab = 'fixtures';
+
+        // Format helper to translate dynamic ISO dates cleanly to target system clocks
+        function formatToLocalTime(isoString) {
+            const dateObj = new Date(isoString);
+            return dateObj.toLocaleString(undefined, {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        // Locate host group bucket map matching selected string
+        function findTeamGroup(teamName) {
+            for (const [groupName, data] of Object.entries(GROUPS_DATA)) {
+                if (data.teams.includes(teamName)) {
+                    return { groupName, data };
+                }
+            }
+            return null;
+        }
+
+        // Initialize team configuration inside the standard HTML select layout element
+        function initDropdown() {
+            const selectEl = document.getElementById("team-select");
+            selectEl.innerHTML = "";
+
+            // Populate all 12 structural blocks
+            Object.keys(GROUPS_DATA).forEach(groupName => {
+                const optGroup = document.createElement("optgroup");
+                optGroup.label = groupName;
+                
+                GROUPS_DATA[groupName].teams.forEach(team => {
+                    const opt = document.createElement("option");
+                    opt.value = team;
+                    opt.innerText = team;
+                    if(team === "England") opt.selected = true; // Fallback match target condition setup
+                    optGroup.appendChild(opt);
+                });
+                selectEl.appendChild(optGroup);
+            });
+        }
+
+        // View toggle handler
+        function switchView(tab) {
+            activeTab = tab;
+            if(tab === 'fixtures') {
+                document.getElementById("view-fixtures").classList.remove("hidden");
+                document.getElementById("view-bracket").classList.add("hidden");
+                document.getElementById("tab-fixtures").className = "py-2.5 px-5 font-bold text-sm border-b-2 border-amber-500 text-amber-400 transition-all";
+                document.getElementById("tab-bracket").className = "py-2.5 px-5 font-bold text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all";
+            } else {
+                document.getElementById("view-fixtures").classList.add("hidden");
+                document.getElementById("view-bracket").classList.remove("hidden");
+                document.getElementById("tab-fixtures").className = "py-2.5 px-5 font-bold text-sm border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all";
+                document.getElementById("tab-bracket").className = "py-2.5 px-5 font-bold text-sm border-b-2 border-amber-500 text-amber-400 transition-all";
+            }
+        }
+
+        // Render standard Group Match combinations dynamically
+        function renderFixtures() {
+            const team = document.getElementById("team-select").value;
+            const context = findTeamGroup(team);
+            if(!context) return;
+
+            document.getElementById("group-badge").innerText = `🚩 Assigned: ${context.groupName}`;
+            
+            const listContainer = document.getElementById("fixtures-list");
+            listContainer.innerHTML = "";
+
+            // Generate synthetic match array details anchoring standard group intervals
+            const opponents = context.data.teams.filter(t => t !== team);
+            
+            // Fixed chronological simulation calendar matrix offsets 
+            const dates = ["2026-06-14T19:00:00Z", "2026-06-20T21:00:00Z", "2026-06-25T20:00:00Z"];
+            const venues = ["MetLife Stadium, East Rutherford", "AT&T Stadium, Arlington", "Hard Rock Stadium, Miami"];
+
+            opponents.forEach((opponent, index) => {
+                const card = document.createElement("div");
+                card.className = "flex justify-between items-center bg-slate-900 border border-slate-700 rounded-xl p-4 flex-wrap gap-2 hover:border-slate-600 transition-all";
+                card.innerHTML = `
+                    <div>
+                        <div class="font-bold text-base text-slate-100">
+                            ${team} <span class="font-normal text-slate-500">vs</span> ${opponent}
+                        </div>
+                        <div class="text-xs text-slate-400 mt-0.5">📍 ${venues[index]}</div>
+                    </div>
+                    <div class="text-right font-semibold text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg text-sm border border-amber-500/20">
+                        ${formatToLocalTime(dates[index])}
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        // Generate and map live structural paths through custom scenario triggers
+        function calculateKnockoutRoute(positionType) {
+            const team = document.getElementById("team-select").value;
+            const context = findTeamGroup(team);
+            if(!context) return;
+
+            const letter = context.data.key;
+            
+            // Clear prior component states
+            ['top', 'second', 'third'].forEach(pos => {
+                document.getElementById(`btn-${pos}`).className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600";
+            });
+
+            // Set contextual state colors matching selection
+            const activeBtn = document.getElementById(`btn-${positionType}`);
+            if(positionType === 'top') activeBtn.className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-green-600 text-white shadow-lg shadow-green-600/20";
+            if(positionType === 'second') activeBtn.className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20";
+            if(positionType === 'third') activeBtn.className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-red-600 text-white shadow-lg shadow-red-600/20";
+
+            const timeline = document.getElementById("bracket-timeline");
+            timeline.innerHTML = "";
+            
+            document.getElementById("bracket-placeholder").classList.add("hidden");
+            timeline.classList.remove("hidden");
+
+            // Extract the matching pathway template
+            const steps = KNOCKOUT_METADATA_TEMPLATE[positionType];
+
+            steps.forEach((step, idx) => {
+                // Parse contextual tags safely
+                let parsedLabel = step.label.replace("[GRP]", `Group ${letter}`);
+                
+                // Customize output strings dynamically to match chosen team
+                if (idx === 0) {
+                    parsedLabel = parsedLabel.replace(`1st Group ${letter}`, team).replace(`2nd Group ${letter}`, team).replace(`3rd Group ${letter}`, team);
+                } else {
+                    parsedLabel = parsedLabel.concat(` (Featuring ${team} if they advance)`);
+                }
+
+                const item = document.createElement("div");
+                item.className = "relative group";
+                item.innerHTML = `
+                    <!-- Timeline Node Indicator Ball -->
+                    <div class="absolute -left-[31px] top-1.5 bg-slate-800 border-2 border-amber-500 rounded-full w-4 h-4 group-hover:bg-amber-400 transition-all"></div>
+                    
+                    <div class="bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-xl p-4 transition-all">
+                        <div class="flex justify-between items-start flex-wrap gap-2 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">
+                                ${step.stage}
+                            </span>
+                            <span class="text-sm font-medium text-slate-300">
+                                📅 ${formatToLocalTime(step.date)}
+                            </span>
+                        </div>
+                        <h4 class="font-bold text-base text-slate-100 mb-1">${parsedLabel}</h4>
+                        <p class="text-xs text-slate-400">🏟️ Location: ${step.venue}</p>
+                    </div>
+                `;
+                timeline.appendChild(item);
+            });
+        }
+
+        // Global Reset Controller
+        function handleTeamUpdate() {
+            renderFixtures();
+            // Clear bracket simulations to prompt fresh calculation interactions
+            document.getElementById("bracket-timeline").innerHTML = "";
+            document.getElementById("bracket-timeline").classList.add("hidden");
+            document.getElementById("bracket-placeholder").classList.remove("hidden");
+            ['top', 'second', 'third'].forEach(pos => {
+                document.getElementById(`btn-${pos}`).className = "py-3 px-3 rounded-xl font-bold text-sm transition-all bg-slate-700 text-slate-300 hover:bg-slate-600";
+            });
+        }
+
+        // Bind system entry lifecycle loop hooks
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                document.getElementById("timezone-display").innerText = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            } catch (e) {
+                document.getElementById("timezone-display").innerText = "GMT/Local Time";
+            }
+
+            initDropdown();
+            document.getElementById("team-select").addEventListener("change", handleTeamUpdate);
+            
+            // Trigger baseline paint matching requirements
+            handleTeamUpdate();
+        });
+    </script>
+</body>
+</html>
